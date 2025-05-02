@@ -72,7 +72,7 @@ const Counter: React.FC<CounterProps> = ({ worker }) => {
   });
 
   const handleEvent = (event: AnyPageScoreEvent) => {
-    worker.postMessage({ type: 'ADD_EVENT', event });
+    worker.postMessage({ type: 'ADD_EVENT', payload: { event } });
   };
 
   return (

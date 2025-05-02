@@ -10,7 +10,7 @@ interface HistoryModalProps {
 const HistoryModal: React.FC<HistoryModalProps> = ({ isOpen, onClose, history }) => {
   if (!isOpen) return null;
 
-  const sortedHistory = [...history].sort((a, b) => b.timestamp - a.timestamp);
+  const sortedHistory = [...history].sort((a, b) => a.timestamp - b.timestamp);
 
   const formatTimestamp = (timestamp: number) => {
     return new Date(timestamp).toLocaleString();
@@ -102,6 +102,7 @@ const HistoryModal: React.FC<HistoryModalProps> = ({ isOpen, onClose, history })
             Close
           </button>
         </div>
+
         <table style={{
           width: '100%',
           borderCollapse: 'collapse'

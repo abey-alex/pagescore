@@ -1,98 +1,87 @@
-import { 
-  AnyPageScoreEvent, 
-  DEFAULT_WEIGHTS, 
-  EventCategory, 
-  PageScoreHistoryEntry,
-  Severity
-} from '../types/pageScore';
+import { PageScoreHistoryEntry, EventCategory, Severity, AnyPageScoreEvent } from '../types/pageScore';
 
-let score = 100;
-const history: PageScoreHistoryEntry[] = [];
-
-// Function to calculate weight based on event type and severity
-const calculateWeight = (event: AnyPageScoreEvent): number => {
-  switch (event.category) {
-    case EventCategory.PERFORMANCE:
-      return DEFAULT_WEIGHTS[EventCategory.PERFORMANCE].default;
-    
-    case EventCategory.ANTI_PATTERN:
-      return DEFAULT_WEIGHTS[EventCategory.ANTI_PATTERN][event.severity].default;
-    
-    case EventCategory.OWNERSHIP:
-      return DEFAULT_WEIGHTS[EventCategory.OWNERSHIP].default;
-    
-    case EventCategory.TREND:
-      return DEFAULT_WEIGHTS[EventCategory.TREND].default;
-    
-    case EventCategory.ACCESSIBILITY:
-      return DEFAULT_WEIGHTS[EventCategory.ACCESSIBILITY].default;
-    
-    default:
-      return 0;
-  }
-};
-
-// Function to add event to history
-const addToHistory = (event: AnyPageScoreEvent) => {
-  const previousScore = score;
-  const weight = calculateWeight(event);
-  score = Math.max(0, Math.min(100, score - weight));
-  
-  history.push({
-    timestamp: Date.now(),
-    event,
-    score,
-    previousScore
-  });
-};
-
-// Define the type for our worker messages
-type WorkerMessage = {
-  type: 'ADD_EVENT' | 'GET_SCORE' | 'GET_HISTORY';
-  event?: AnyPageScoreEvent;
-};
-
-type WorkerResponse = {
-  type: 'SCORE_UPDATED' | 'HISTORY_UPDATED';
-  score?: number;
-  history?: PageScoreHistoryEntry[];
-};
-
-// Use the global scope for the worker
+// Declare the global scope for the worker
 declare const global: WorkerGlobalScope & typeof globalThis;
 
-global.addEventListener('message', (event: MessageEvent<WorkerMessage>) => {
-  switch (event.data.type) {
-    case 'ADD_EVENT':
-      if (event.data.event) {
-        addToHistory(event.data.event);
-        global.postMessage({ 
-          type: 'SCORE_UPDATED', 
-          score,
-          history 
-        } as WorkerResponse);
-      }
-      break;
-    
-    case 'GET_SCORE':
-      global.postMessage({ 
-        type: 'SCORE_UPDATED', 
-        score,
-        history 
-      } as WorkerResponse);
-      break;
-    
-    case 'GET_HISTORY':
-      global.postMessage({ 
-        type: 'HISTORY_UPDATED', 
-        history 
-      } as WorkerResponse);
-      break;
-    
-    default:
-      break;
+let score = 100;
+let history: PageScoreHistoryEntry[] = [];
+
+const addToHistory = (event: Omit<PageScoreHistoryEntry, 'timestamp'>) => {
+  const historyEntry: PageScoreHistoryEntry = {
+    ...event,
+    timestamp: Date.now()
+  };
+  history.push(historyEntry);
+  return historyEntry;
+};
+
+const updateScore = (weight: number) => {
+  const previousScore = score;
+  score = Math.max(0, Math.min(100, score - weight));
+  return { score, previousScore };
+};
+
+const createPerformanceEvent = (description: string, weight: number): AnyPageScoreEvent => ({
+  id: crypto.randomUUID(),
+  timestamp: Date.now(),
+  category: EventCategory.PERFORMANCE,
+  severity: Severity.LOW,
+  description,
+  weight,
+  metrics: {
+    loadTime: 0,
+    threshold: 0,
+    actualValue: 0
   }
 });
+
+const handleMessage = (event: MessageEvent) => {
+  const { type, payload } = event.data;
+
+  switch (type) {
+    case 'INCREMENT':
+      const { score: newScore, previousScore } = updateScore(-1);
+      const incrementEvent = addToHistory({
+        event: createPerformanceEvent('Score incremented', -1),
+        score: newScore,
+        previousScore
+      });
+      global.postMessage({ type: 'SCORE_UPDATED', payload: { score: newScore, history } });
+      break;
+
+    case 'DECREMENT':
+      const { score: newScore2, previousScore: previousScore2 } = updateScore(1);
+      const decrementEvent = addToHistory({
+        event: createPerformanceEvent('Score decremented', 1),
+        score: newScore2,
+        previousScore: previousScore2
+      });
+      global.postMessage({ type: 'SCORE_UPDATED', payload: { score: newScore2, history } });
+      break;
+
+    case 'GET_SCORE':
+      global.postMessage({ type: 'SCORE_UPDATED', payload: { score, history } });
+      break;
+
+    case 'GET_HISTORY':
+      global.postMessage({ type: 'HISTORY_UPDATED', payload: { history } });
+      break;
+
+    case 'ADD_EVENT':
+      if (payload?.event) {
+        const { score: newScore3, previousScore: previousScore3 } = updateScore(payload.event.weight);
+        const event = addToHistory({
+          event: payload.event,
+          score: newScore3,
+          previousScore: previousScore3
+        });
+        global.postMessage({ type: 'SCORE_UPDATED', payload: { score: newScore3, history } });
+      }
+      break;
+  }
+};
+
+global.onmessage = handleMessage;
 
 // Make the file a module
 export {}; 
