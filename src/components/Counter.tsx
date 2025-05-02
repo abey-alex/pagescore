@@ -59,18 +59,6 @@ const Counter: React.FC<CounterProps> = ({ worker }) => {
     percentageChange: 50
   });
 
-  const createAccessibilityEvent = (): AnyPageScoreEvent => ({
-    id: crypto.randomUUID(),
-    timestamp: Date.now(),
-    category: EventCategory.ACCESSIBILITY,
-    severity: Severity.MEDIUM,
-    description: 'Accessibility issue detected',
-    weight: 10,
-    issueType: 'Missing Alt Text',
-    element: 'img#banner',
-    impact: 'Screen readers cannot describe the image'
-  });
-
   const handleEvent = (event: AnyPageScoreEvent) => {
     worker.postMessage({ type: 'ADD_EVENT', payload: { event } });
   };
@@ -133,19 +121,6 @@ const Counter: React.FC<CounterProps> = ({ worker }) => {
         }}
       >
         Add Trend Event
-      </button>
-      <button 
-        onClick={() => handleEvent(createAccessibilityEvent())}
-        style={{
-          padding: '10px',
-          backgroundColor: '#9C27B0',
-          color: 'white',
-          border: 'none',
-          borderRadius: '4px',
-          cursor: 'pointer'
-        }}
-      >
-        Add Accessibility Event
       </button>
     </div>
   );

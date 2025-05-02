@@ -3,8 +3,7 @@ export enum EventCategory {
   PERFORMANCE = 'PERFORMANCE',
   ANTI_PATTERN = 'ANTI_PATTERN',
   OWNERSHIP = 'OWNERSHIP',
-  TREND = 'TREND',
-  ACCESSIBILITY = 'ACCESSIBILITY'
+  TREND = 'TREND'
 }
 
 // Event severity levels
@@ -55,20 +54,12 @@ export interface TrendEvent extends PageScoreEvent {
   percentageChange: number;
 }
 
-export interface AccessibilityEvent extends PageScoreEvent {
-  category: EventCategory.ACCESSIBILITY;
-  issueType: string;
-  element: string;
-  impact: string;
-}
-
 // Union type for all possible events
 export type AnyPageScoreEvent = 
   | PerformanceEvent 
   | AntiPatternEvent 
   | OwnershipEvent 
-  | TrendEvent 
-  | AccessibilityEvent;
+  | TrendEvent;
 
 // Weight configuration interface
 export interface WeightConfig {
@@ -88,7 +79,6 @@ export interface CategoryWeights {
   };
   [EventCategory.OWNERSHIP]: WeightConfig;
   [EventCategory.TREND]: WeightConfig;
-  [EventCategory.ACCESSIBILITY]: WeightConfig;
 }
 
 // Default weight configurations
@@ -113,11 +103,6 @@ export const DEFAULT_WEIGHTS: CategoryWeights = {
     min: 10,
     max: 20,
     default: 15
-  },
-  [EventCategory.ACCESSIBILITY]: {
-    min: 5,
-    max: 15,
-    default: 10
   }
 };
 
